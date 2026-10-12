@@ -169,6 +169,7 @@ def evaluate_policies(context: dict) -> dict:
     Returns: Evaluation results
     """
     seed_policies()
+    seed_capabilities()
     evaluation_id = str(uuid.uuid4())[:12]
     
     conn = sqlite3.connect(DB_PATH)
@@ -365,6 +366,8 @@ def approve_gate(action_hash: str, approver: str) -> dict:
 def get_governance_summary() -> dict:
     """Governance Summary"""
     init_governance_db()
+    seed_policies()
+    seed_capabilities()
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     

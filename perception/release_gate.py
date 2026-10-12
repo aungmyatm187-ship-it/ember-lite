@@ -24,7 +24,7 @@ DB_PATH = os.path.join(os.path.dirname(__file__), "release_gate.db")
 # =========================================================
 
 def init_gate_db():
-    """Release Gate Database ဖန်တီးခြင်း"""
+    """Create the release gate database"""
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     
@@ -113,7 +113,7 @@ GATES = {
 # =========================================================
 
 def _evaluate_security(perception_data: dict) -> dict:
-    """Security Gate: CRITICAL Actions စစ်ဆေးခြင်း"""
+    """Security Gate: check for CRITICAL actions"""
     critical_count = 0
     total = 0
     
@@ -146,7 +146,7 @@ def _evaluate_security(perception_data: dict) -> dict:
 
 
 def _evaluate_performance(perception_data: dict) -> dict:
-    """Performance Gate: Confidence Score စစ်ဆေးခြင်း"""
+    """Performance Gate: check confidence score"""
     avg_confidence = 0
     
     if perception_data:
@@ -190,7 +190,7 @@ def _evaluate_evidence() -> dict:
 
 
 def _evaluate_regression() -> dict:
-    """Regression Gate: Directional Drift စစ်ဆေးခြင်း"""
+    """Regression Gate: check directional drift"""
     try:
         conn = sqlite3.connect(DB_PATH)
         c = conn.cursor()
@@ -272,7 +272,7 @@ def _evaluate_governance() -> dict:
 
 def evaluate_release(perception_data: dict = None) -> dict:
     """
-    Release Gate ကို အပြည့်အစုံ Evaluate လုပ်ခြင်း
+    Run a full Release Gate evaluation
     
     Args:
         perception_data: P1 Perception Report (optional)
@@ -380,7 +380,7 @@ def evaluate_release(perception_data: dict = None) -> dict:
 
 
 def get_evaluation_history(limit: int = 10) -> list:
-    """Release Evaluation သမိုင်းကြောင်း"""
+    """Release evaluation history"""
     init_gate_db()
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -402,7 +402,7 @@ def get_evaluation_history(limit: int = 10) -> list:
 
 
 def format_gate_report(result: dict) -> str:
-    """Gate Report ကို Format လုပ်ခြင်း"""
+    """Format the gate report"""
     icons = {
         "SHIP": "✅", "HOLD": "⚠️",
         "REVIEW": "🔶", "NO_SHIP": "⛔"

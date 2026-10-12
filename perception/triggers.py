@@ -1,6 +1,6 @@
 """
 Ember Perception - Trigger Engine
-ဘယ်အချိန် အကြံပြုသင့်လဲ ဆုံးဖြတ်ခြင်း
+Decide when to suggest
 """
 
 from datetime import datetime
@@ -8,8 +8,8 @@ from datetime import datetime
 
 class TriggerEngine:
     """
-    Trigger Rules တွေကို Evaluate လုပ်ခြင်း
-    ဥပမာ: Status ပြောင်းရင်, Confidence ကျရင်, Error တက်ရင်
+    Evaluate trigger rules
+    Examples: status change, confidence drop, new error
     """
     
     # Severity levels
@@ -23,10 +23,10 @@ class TriggerEngine:
     
     def evaluate(self, analysis_report: dict) -> list:
         """
-        Analysis Report ကို ကြည့်ပြီး Triggers တွေ Fire လုပ်ခြင်း
+        Fire triggers based on the analysis report
         
         Args:
-            analysis_report: P1 Analysis ရဲ့ Output
+            analysis_report: output of P1 analysis
         
         Returns: List of triggered events
         """
@@ -58,7 +58,7 @@ class TriggerEngine:
     # =========================================================
     
     def _check_status_change(self, changes: dict):
-        """Status ပြောင်းလဲမှုကို စစ်ဆေးခြင်း"""
+        """Check for status changes"""
         for source, change_report in changes.items():
             if not change_report.get("changed"):
                 continue
@@ -97,7 +97,7 @@ class TriggerEngine:
     # =========================================================
     
     def _check_confidence_drop(self, observations: dict, threshold: int = 15):
-        """Confidence ကျဆင်းမှုကို စစ်ဆေးခြင်း"""
+        """Check for confidence drops"""
         for source, obs in observations.items():
             if not obs:
                 continue
@@ -125,7 +125,7 @@ class TriggerEngine:
                     "type": "confidence_drop",
                     "source": source,
                     "severity": severity,
-                    "message": f"{source} confidence ကျဆင်း: {old_conf}% → {new_conf}%",
+                    "message": f"{source} confidence dropped: {old_conf}% → {new_conf}%",
                     "context": {
                         "drop": drop,
                         "old": old_conf,
@@ -138,7 +138,7 @@ class TriggerEngine:
     # =========================================================
     
     def _check_errors(self, observations: dict):
-        """Error အသစ် တက်လာမှုကို စစ်ဆေးခြင်း"""
+        """Check for new errors"""
         for source, obs in observations.items():
             if not obs:
                 continue
@@ -148,7 +148,7 @@ class TriggerEngine:
                     "type": "error_appeared",
                     "source": source,
                     "severity": self.CRITICAL,
-                    "message": f"{source} မှာ Error တက်နေသည်: {obs['error_type']}",
+                    "message": f"{source} is reporting error: {obs['error_type']}",
                     "context": {
                         "error_type": obs["error_type"],
                         "status": obs.get("status")
@@ -160,7 +160,7 @@ class TriggerEngine:
     # =========================================================
     
     def _check_correlations(self, correlations: list):
-        """အရေးကြီးတဲ့ Correlations တွေကို စစ်ဆေးခြင်း"""
+        """Check for important correlations"""
         for corr in correlations:
             sev = corr.get("severity", "info")
             
@@ -183,7 +183,7 @@ class TriggerEngine:
     # =========================================================
     
     def _check_overall_status(self, report: dict):
-        """Overall Status ကို စစ်ဆေးခြင်း"""
+        """Check overall status"""
         status = report.get("overall_status", "unknown")
         conf = report.get("overall_confidence", 0)
         
@@ -209,11 +209,11 @@ class TriggerEngine:
     # =========================================================
     
     def has_critical(self) -> bool:
-        """Critical trigger ရှိလား"""
+        """Is there a critical trigger?"""
         return any(t["severity"] == self.CRITICAL for t in self.triggers_fired)
     
     def summary(self) -> str:
-        """Triggers ရဲ့ Summary"""
+        """Summary of triggers"""
         if not self.triggers_fired:
             return "No triggers fired."
         
@@ -271,8 +271,8 @@ if __name__ == "__main__":
         "changes": {},
         "correlations": [
             {
-                "insight": "Backend ပျက်နေတယ်၊ Code က သန့်ရှင်းတယ်",
-                "action": "Railway Log တွေ စစ်ပါ",
+                "insight": "Backend is down, but the code is clean",
+                "action": "Check Railway logs",
                 "severity": "critical",
                 "confidence": 85,
                 "pattern": "backend:down + repo:clean"

@@ -1,6 +1,6 @@
 """
 Ember Evidence Graph
-ဆုံးဖြတ်ချက်များရဲ့ ဆက်စပ်မှုကို Graph အနေနဲ့ မှတ်တမ်းတင်ခြင်း
+Record relationships between decisions as a graph
 """
 
 import sqlite3

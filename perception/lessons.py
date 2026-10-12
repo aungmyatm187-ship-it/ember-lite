@@ -1,9 +1,9 @@
 """
 Ember Lessons System
-Ember က သူ့အမှားတွေကနေ သင်ယူခြင်း
+Ember learns from its own mistakes
 
-Philosophy: "မှတ်တမ်းမရှိရင် သက်သေမရှိဘူး"
-→ "အမှားမှတ်တမ်းမရှိရင် တိုးတက်မှုမရှိဘူး"
+Philosophy: "No record, no evidence"
+→ "No mistake record, no improvement"
 """
 
 import sqlite3
@@ -15,7 +15,7 @@ DB_PATH = os.path.join(os.path.dirname(__file__), "lessons.db")
 
 
 def init_lessons_db():
-    """Lessons Database ဖန်တီးခြင်း"""
+    """Create the lessons database"""
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("""
@@ -40,22 +40,22 @@ def init_lessons_db():
 def record_lesson(lesson_type, mistake, fix, root_cause=None,
                   prevention=None, trigger_pattern=None, severity="medium"):
     """
-    သင်ခန်းစာ တစ်ခုကို မှတ်တမ်းတင်ခြင်း
+    Record a lesson
     
     Args:
         lesson_type: "syntax_error", "logic_error", "runtime_error", "process_error"
-        mistake: ဘာမှားခဲ့လဲ
-        fix: ဘယ်လို ပြင်ခဲ့လဲ
-        root_cause: အမြစ်အကြောင်းရင်း
-        prevention: နောက်တစ်ခါ ဘယ်လို ရှောင်မလဲ
-        trigger_pattern: ဘယ် pattern မြင်ရင် သတိထားမလဲ
+        mistake: what went wrong
+        fix: how it was fixed
+        root_cause: root cause
+        prevention: how to avoid it next time
+        trigger_pattern: which pattern to watch for
         severity: "low", "medium", "high", "critical"
     """
     init_lessons_db()
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     
-    # တူတူ ရှိပြီးသားလား စစ်ဆေးခြင်း
+    # Check if this lesson already exists
     c.execute("""
         SELECT id, times_encountered FROM lessons
         WHERE mistake = ? AND fix = ?
@@ -63,7 +63,7 @@ def record_lesson(lesson_type, mistake, fix, root_cause=None,
     existing = c.fetchone()
     
     if existing:
-        # ရှိပြီးသားဆိုရင် count ကို တိုးခြင်း
+        # If it exists, increment the count
         c.execute("""
             UPDATE lessons
             SET times_encountered = times_encountered + 1
@@ -72,7 +72,7 @@ def record_lesson(lesson_type, mistake, fix, root_cause=None,
         lesson_id = existing[0]
         print(f"📚 Lesson #{lesson_id} reinforced (encountered {existing[1] + 1} times)")
     else:
-        # အသစ် ထည့်ခြင်း
+        # Insert new
         c.execute("""
             INSERT INTO lessons
             (lesson_type, trigger_pattern, mistake, root_cause, fix, prevention, severity)
@@ -90,7 +90,7 @@ def record_lesson(lesson_type, mistake, fix, root_cause=None,
 
 
 def get_lessons(lesson_type=None, severity=None, limit=20):
-    """Lessons တွေကို ရယူခြင်း"""
+    """Fetch lessons"""
     init_lessons_db()
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -132,8 +132,8 @@ def get_lessons(lesson_type=None, severity=None, limit=20):
 
 def check_for_pattern(code_or_command: str) -> list:
     """
-    Code / Command ကို ကြည့်ပြီး ဖြစ်နိုင်တဲ့ ပြဿနာတွေကို သတိပေးခြင်း
-    (Ember က Command run ခင်မှာ သုံးနိုင်တယ်)
+    Inspect code or command and warn about possible issues
+    (Ember can use this before running a command)
     """
     init_lessons_db()
     warnings = []
@@ -158,7 +158,7 @@ def check_for_pattern(code_or_command: str) -> list:
 
 
 def summary() -> str:
-    """Lessons တွေရဲ့ Summary"""
+    """Summary of lessons"""
     init_lessons_db()
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -200,20 +200,20 @@ def summary() -> str:
 
 
 # =========================================================
-# SEED: ဒီနေ့ ဖြစ်ခဲ့တဲ့ အမှားတွေကို မှတ်တမ်းတင်ခြင်း
+# SEED: Record today's mistakes
 # =========================================================
 
 def seed_initial_lessons():
-    """ပထမဆုံး သင်ခန်းစာတွေ ထည့်ခြင်း"""
+    """Insert the initial lessons"""
     
     # Lesson 1: Python Reserved Keyword
     record_lesson(
         lesson_type="syntax_error",
         trigger_pattern="from=context.get",
-        mistake="Python Reserved Keyword 'from' ကို keyword argument အနေနဲ့ သုံးမိ",
-        root_cause="'from' ဟာ Python ရဲ့ reserved keyword ဖြစ်တဲ့အတွက် keyword argument အနေနဲ့ သုံးလို့ မရ",
-        fix="'from' ကို 'from_val' လို့ ပြောင်းပြီး template ထဲက placeholder ကိုပါ update လုပ်ပါ",
-        prevention="Variable / Argument နာမည် ပေးတိုင်း Python Reserved Keywords စာရင်းနဲ့ တိုက်စစ်ပါ",
+        mistake="Accidentally used Python reserved keyword 'from' as a keyword argument",
+        root_cause="'from' is a Python reserved keyword, so it cannot be used as a keyword argument",
+        fix="Rename 'from' to 'from_val' and update the placeholder in the template",
+        prevention="Before naming variables or arguments, check them against Python's reserved keyword list",
         severity="high"
     )
     
@@ -221,10 +221,10 @@ def seed_initial_lessons():
     record_lesson(
         lesson_type="process_error",
         trigger_pattern="duplicate_lines",
-        mistake="Termux မှာ Code ရှည်တွေ copy/paste လုပ်တဲ့အခါ လိုင်းတွေ ထပ်သွားပြီး syntax error တက်",
-        root_cause="Termux ရဲ့ Terminal က multi-line paste ကို တစ်ခါတစ်ရံ မှားယွင်းစွာ handle လုပ်တယ်",
-        fix="Script ဖိုင်ကို 'cat > file << ENDOFFILE' pattern နဲ့ တစ်ခါတည်း ရေးပါ၊ 'EOF' အစား 'ENDOFFILE' ကို သုံးပါ",
-        prevention="Code ရေးပြီးတိုင်း 'python3 -m py_compile file.py' နဲ့ syntax စစ်ပါ",
+        mistake="Copy/pasting long code in Termux duplicated lines and caused a syntax error",
+        root_cause="Termux's terminal sometimes mishandles multi-line paste",
+        fix="Write the script file in one shot using 'cat > file << ENDOFFILE'; use 'ENDOFFILE' instead of 'EOF'",
+        prevention="After writing code, always check syntax with 'python3 -m py_compile file.py'",
         severity="high"
     )
     
@@ -232,10 +232,10 @@ def seed_initial_lessons():
     record_lesson(
         lesson_type="process_error",
         trigger_pattern="<< 'EOF'",
-        mistake="File content ထဲမှာ 'EOF' ပါနေတဲ့အခါ heredoc က စောစော ပိတ်သွားတယ်",
-        root_cause="Heredoc delimiter က unique မဖြစ်လို့ content ထဲက 'EOF' နဲ့ ရောသွားတယ်",
-        fix="Delimiter ကို 'ENDOFFILE' လို unique စာလုံးအဖြစ် ပြောင်းပါ",
-        prevention="Heredoc သုံးတိုင်း 'EOF' အစား unique delimiter သုံးပါ",
+        mistake="When 'EOF' appeared in the file content, the heredoc closed prematurely",
+        root_cause="The heredoc delimiter was not unique and got confused with 'EOF' in the content",
+        fix="Change the delimiter to a unique word like 'ENDOFFILE'",
+        prevention="When using heredoc, always use a unique delimiter instead of 'EOF'",
         severity="medium"
     )
     

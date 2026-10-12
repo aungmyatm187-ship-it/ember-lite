@@ -20,7 +20,7 @@ class SuggestionGenerator:
     
     RULES = {
         "error_appeared": {
-            "template": "🚨 {source} is reporting a {error_type} error.",
+            "template": "{source} is reporting a {error_type} error.",
             "actions": {
                 "network_timeout": "Re-run the backend health check",
                 "auth_error": "Recheck the API keys",
@@ -45,19 +45,19 @@ class SuggestionGenerator:
             }
         },
         "correlation_alert": {
-            "template": "🔗 {insight}",
+            "template": "{insight}",
             "actions": {
                 "default": "{action_val}"
             }
         },
         "overall_critical": {
-            "template": "🚨 The entire system is in a CRITICAL state.",
+            "template": "The entire system is in a CRITICAL state.",
             "actions": {
                 "default": "Stop everything and investigate the cause"
             }
         },
         "overall_warning": {
-            "template": "⚠️ The system has an active warning.",
+            "template": "The system has an active warning.",
             "actions": {
                 "default": "Monitor with caution"
             }

@@ -180,7 +180,7 @@ class LocalObserver(BaseObserver):
         super().__init__("local", category="environment")
     
     def _fetch(self):
-        disk = shutil.disk_usage("/")
+        disk = shutil.disk_usage(os.path.expanduser("~"))
         return {
             "disk_free_gb": round(disk.free / (1024**3), 2),
             "disk_used_gb": round(disk.used / (1024**3), 2),

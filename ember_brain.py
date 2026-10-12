@@ -1,6 +1,5 @@
 """
 Ember's Brain - LLM Integration
-Ember ရဲ့ ဦးနှောက် - LLM ချိတ်ဆက်မှု
 
 Supported Providers:
 - OpenRouter (recommended, free models available)
@@ -14,7 +13,7 @@ import urllib.error
 
 
 class EmberBrain:
-    """Ember ရဲ့ ဦးနှောက် - LLM နဲ့ ချိတ်ဆက်ပေးတဲ့ Class"""
+    """Ember's Brain - class that connects to LLM providers"""
     
     PROVIDERS = {
         "openrouter": {
@@ -48,7 +47,7 @@ class EmberBrain:
             )
     
     def system_prompt(self, identity: dict) -> str:
-        """Ember ရဲ့ ကိုယ်ရည်ကိုယ်သွေးကို System Prompt အဖြစ် ပြောင်းခြင်း"""
+        """Convert Ember's identity into a system prompt"""
         return f"""You are {identity['name']}, an AI agent with the tagline "{identity['tagline']}".
 
 PERSONALITY: You are {identity['personality']['archetype']}. {identity['personality']['description']}
@@ -84,7 +83,7 @@ IMPORTANT RULES:
 Respond as Ember. Be calm, factual, and concise."""
     
     def think(self, user_message: str, identity: dict, context: str = "") -> str:
-        """Ember က စဉ်းစားပြီး ပြန်ဖြေခြင်း"""
+        """Ember thinks and responds"""
         system = self.system_prompt(identity)
         
         if context:
@@ -96,7 +95,7 @@ Respond as Ember. Be calm, factual, and concise."""
             return self._call_openai_compatible(system, user_message)
     
     def _call_openai_compatible(self, system: str, user: str) -> str:
-        """OpenAI-compatible API (OpenRouter, OpenAI) ကို ခေါ်ခြင်း"""
+        """Call an OpenAI-compatible API (OpenRouter, OpenAI)"""
         payload = {
             "model": self.config["model"],
             "messages": [
@@ -129,7 +128,7 @@ Respond as Ember. Be calm, factual, and concise."""
             return f"❌ Error: {e}"
     
     def _call_gemini(self, system: str, user: str) -> str:
-        """Google Gemini API ကို ခေါ်ခြင်း"""
+        """Call the Google Gemini API"""
         url = f"{self.config['url']}?key={self.api_key}"
         payload = {
             "system_instruction": {"parts": [{"text": system}]},
@@ -155,7 +154,7 @@ Respond as Ember. Be calm, factual, and concise."""
 
 
 if __name__ == "__main__":
-    # စမ်းသပ်ရန်
+    # For testing
     from ember_identity import EMBER_IDENTITY
     
     try:

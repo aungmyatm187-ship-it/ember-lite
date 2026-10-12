@@ -12,7 +12,7 @@ import urllib.error
 
 
 class ToolCaller:
-    """LLM ကို Tools ပေးပြီး Tool Calling လုပ်တဲ့ Engine"""
+    """Engine that gives tools to the LLM and handles tool calling"""
     
     def __init__(self, api_key: str = None):
         self.api_key = api_key or os.getenv("OPENROUTER_API_KEY", "")
@@ -22,7 +22,7 @@ class ToolCaller:
     
     def register_tool(self, name: str, description: str, 
                       parameters: dict, func):
-        """Tool တစ်ခု Register လုပ်ခြင်း"""
+        """Register a tool"""
         self.tools[name] = {
             "definition": {
                 "type": "function",
@@ -48,7 +48,7 @@ class ToolCaller:
             return f"Error: {e}"
     
     def think(self, prompt: str, system: str = "You are Ember.") -> str:
-        """Tool Calling Loop နဲ့ စဉ်းစားခြင်း"""
+        """Think via the tool calling loop"""
         messages = [
             {"role": "system", "content": system},
             {"role": "user", "content": prompt}
@@ -84,12 +84,12 @@ class ToolCaller:
             choice = data["choices"][0]["message"]
             messages.append(choice)
             
-            # Tool calls ရှိလား?
+            # Are there tool calls?
             tool_calls = choice.get("tool_calls", [])
             if not tool_calls:
                 return choice.get("content", "No response")
             
-            # Tool တွေ Run
+            # Run the tools
             for tc in tool_calls:
                 fn = tc["function"]
                 name = fn["name"]

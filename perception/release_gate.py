@@ -24,7 +24,7 @@ DB_PATH = os.path.join(os.path.dirname(__file__), "release_gate.db")
 # =========================================================
 
 def init_gate_db():
-    """Release Gate Database ဖန်တီးခြင်း"""
+    """Create the Release Gate database."""
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     
@@ -288,7 +288,7 @@ def _evaluate_governance() -> dict:
 
 def evaluate_release(perception_data: dict = None) -> dict:
     """
-    Release Gate ကို အပြည့်အစုံ Evaluate လုပ်ခြင်း
+    Fully evaluate the Release Gate.
     
     Args:
         perception_data: P1 Perception Report (optional)
@@ -407,7 +407,7 @@ def evaluate_release(perception_data: dict = None) -> dict:
 
 
 def get_evaluation_history(limit: int = 10) -> list:
-    """Release Evaluation သမိုင်းကြောင်း"""
+    """Release Evaluation history."""
     init_gate_db()
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -429,7 +429,7 @@ def get_evaluation_history(limit: int = 10) -> list:
 
 
 def format_gate_report(result: dict) -> str:
-    """Gate Report ကို Format လုပ်ခြင်း"""
+    """Format the Gate Report."""
     icons = {
         "SHIP": "✅", "HOLD": "⚠️",
         "REVIEW": "🔶", "NO_SHIP": "⛔"

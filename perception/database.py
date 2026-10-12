@@ -1,19 +1,19 @@
 """
 Ember Perception - Database Manager
-Observation Store ကို စီမံခန့်ခွဲခြင်း
+Manage the observation store
 """
 
 import sqlite3
 import os
 from datetime import datetime
 
-# Database လမ်းကြောင်း
+# Database path
 DB_PATH = os.path.join(os.path.dirname(__file__), "perception.db")
 SCHEMA_PATH = os.path.join(os.path.dirname(__file__), "schema.sql")
 
 
 def init_db():
-    """Database နဲ့ Tables တွေ ဖန်တီးခြင်း"""
+    """Create database and tables"""
     conn = sqlite3.connect(DB_PATH)
     with open(SCHEMA_PATH, "r") as f:
         conn.executescript(f.read())
@@ -23,7 +23,7 @@ def init_db():
 
 
 def save_observation(obs: dict) -> int:
-    """Observation တစ်ခုကို သိမ်းခြင်း"""
+    """Save an observation"""
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("""
@@ -47,7 +47,7 @@ def save_observation(obs: dict) -> int:
 
 
 def get_latest_observation(source: str) -> dict:
-    """Source တစ်ခုရဲ့ နောက်ဆုံး Observation ကို ရယူခြင်း"""
+    """Fetch the latest observation for a source"""
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("""
@@ -77,7 +77,7 @@ def get_latest_observation(source: str) -> dict:
 
 
 def get_recent_observations(limit: int = 10) -> list:
-    """နောက်ဆုံး Observation တွေကို ရယူခြင်း"""
+    """Fetch recent observations"""
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("""
@@ -91,7 +91,7 @@ def get_recent_observations(limit: int = 10) -> list:
 
 
 def log_change(source: str, field: str, old_value, new_value):
-    """ပြောင်းလဲမှုကို မှတ်တမ်းတင်ခြင်း"""
+    """Log a change"""
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("""
@@ -106,7 +106,7 @@ if __name__ == "__main__":
     path = init_db()
     print(f"✅ Database initialized: {path}")
     
-    # Test: Observation သိမ်းကြည့်
+    # Test: save an observation
     test_obs = {
         "source": "test",
         "status": "healthy",
@@ -118,6 +118,6 @@ if __name__ == "__main__":
     obs_id = save_observation(test_obs)
     print(f"✅ Test observation saved with ID: {obs_id}")
     
-    # Test: ပြန်ရယူကြည့်
+    # Test: fetch it back
     latest = get_latest_observation("test")
     print(f"✅ Latest observation: {latest['status']}")

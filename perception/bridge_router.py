@@ -31,7 +31,7 @@ ROUTES = {
 
 
 def route_command(command: str, sender: str) -> dict:
-    """Terminal Label ကနေ Channel ကို Route လုပ်ခြင်း"""
+    """Route a terminal label to its channel"""
     channel = ROUTES.get(sender)
     if not channel:
         return {"status": "error", "error": f"Unknown sender: {sender}"}
@@ -76,7 +76,7 @@ def route_command(command: str, sender: str) -> dict:
 
 
 def process_inbox(terminal: str, limit: int = 5) -> list:
-    """Terminal တစ်ခုအတွက် Messages ရယူခြင်း"""
+    """Fetch messages for a terminal"""
     messages = receive_messages(terminal, limit=limit)
     
     for m in messages:
@@ -171,7 +171,7 @@ def graph_summary() -> dict:
 
 
 def verify_graph_integrity() -> dict:
-    """Graph ထဲက Nodes အားလုံးရဲ့ Signatures ကို စစ်ဆေးခြင်း"""
+    """Verify signatures of all nodes in the graph"""
     init_graph_db()
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()

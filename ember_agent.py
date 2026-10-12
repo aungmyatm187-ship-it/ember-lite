@@ -138,6 +138,17 @@ except ImportError as e:
     BRIDGE_OK = False
     BRIDGE_ERROR = str(e)
 
+# Governance (P6)
+try:
+    from perception.governance import (
+        get_governance_summary as gov_summary,
+        evaluate_policies as gov_evaluate,
+    )
+    GOVERNANCE_OK = True
+except ImportError as e:
+    GOVERNANCE_OK = False
+    GOVERNANCE_ERROR = str(e)
+
 
 # =========================================================
 # EMBER AGENT
@@ -309,6 +320,42 @@ class EmberAgent:
             except Exception:
                 pass
     
+    def do_govern(self):
+        if not GOVERNANCE_OK:
+            console.print("[red]❌ Governance missing.[/red]")
+            return
+        console.print("\n[dim]🔒 Ember က Governance ကိ စစ်ဆေးနေသည်...[/dim]\n")
+        try:
+            summary = gov_summary()
+        except Exception as e:
+            console.print(f"[red]❌ Error: {e}[/red]")
+            return
+
+        gates = summary.get("approval_gates", {}) or {}
+        approved = gates.get("approved", 0)
+        pending = gates.get("pending", 0)
+        rejected = gates.get("rejected", 0)
+
+        table = Table(title="🔒 Governance Gateway (P6)", show_header=True)
+        table.add_column("Metric", style="cyan")
+        table.add_column("Value", justify="right")
+        table.add_row("Active Policies", str(summary.get("active_policies", 0)))
+        table.add_row("Allowed Capabilities", str(summary.get("allowed_capabilities", 0)))
+        table.add_row("Gates Approved", str(approved))
+        table.add_row("Gates Pending", str(pending))
+        table.add_row("Gates Rejected", str(rejected))
+        console.print(table)
+
+        if PROVENANCE_OK:
+            try:
+                log_action(
+                    "governance", "govern",
+                    "ember_governance",
+                    f"policies={summary.get('active_policies', 0)} pending={pending}"
+                )
+            except Exception:
+                pass
+
     def do_analyze(self):
         if not self.last_perception:
             console.print("[yellow]⚠️  Run 'perceive' first.[/yellow]")
@@ -1029,6 +1076,9 @@ Format:
                     self.do_gate(); continue
                 if cmd_lower == "gate history":
                     self.do_gate_history(); continue
+
+                # ===== GOVERNANCE (P6) =====
+                if cmd_lower == "govern": self.do_govern(); continue
 
                 
                 # ===== LESSONS =====

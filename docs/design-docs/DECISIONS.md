@@ -89,3 +89,21 @@ check turns the claim into something a machine verifies on every push.
 ## Related
 
 - PRINCIPLES.md
+
+## ADR-008: Merkle tree promotes a lone node; it never duplicates
+
+Status: Accepted
+
+Decision: A level with an odd node count promotes the trailing node unchanged instead of duplicating it, and build_proof derives its siblings from the same level walk build_tree uses. legacy_root_hash() keeps the old construction only so anchors written before 2026-10-13 can still be re-verified.
+
+Context: The original builder duplicated a trailing odd node (Bitcoin-style) and padded each level independently when building a proof. Two consequences:
+
+- Different leaf sets collided: root([a,b,c]) equalled root([a,b,c,c]). A root no longer committed to exactly one batch, so an inclusion proof for a leaf of the shorter batch verified against the longer batch root.
+- A promoted node could be paired with itself in a proof.
+
+The module had no tests, so neither property was pinned. Found while adding inclusion proofs for the Phase C work.
+
+Consequences:
+- Anchors created from now on use the promotion scheme.
+- perception/federated_verify.py accepts an old anchor and reports which scheme it used (merkle_scheme: promote | legacy_duplicate) instead of falsely calling a genuine old commitment tampered.
+- invariants.py gains I5b_merkle_no_collision, and tests/test_merkle.py covers sizes 1-16, tampering, cross-root rejection, and domain separation.

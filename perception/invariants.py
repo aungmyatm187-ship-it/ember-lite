@@ -165,6 +165,25 @@ def invariant_merkle_tamper(samples: int = 30) -> dict:
     return {"ok": True, "samples": samples}
 
 
+def invariant_merkle_no_collision(samples: int = 30) -> dict:
+    """
+    Distinct leaf sets must never share a root.
+
+    Guards the 2026-10-13 fix: duplicating a trailing odd node let a batch and
+    the same batch with its last leaf repeated produce the same root.
+    """
+    from perception.merkle import hash_leaf, root_hash
+    for _ in range(samples):
+        n = _rng.randint(1, 9)
+        leaves = [hash_leaf({"i": i, "v": _rng.randint(0, 100)})
+                  for i in range(n)]
+        if n % 2 == 1 and root_hash(leaves) == root_hash(leaves + [leaves[-1]]):
+            return {"ok": False, "reason": f"root collision at n={n}"}
+        if root_hash(leaves) == root_hash(leaves + [hash_leaf({"extra": n})]):
+            return {"ok": False, "reason": f"root collision with extra at n={n}"}
+    return {"ok": True, "samples": samples}
+
+
 # =========================================================
 # I7: AUTHORIZATION GATE
 # =========================================================
@@ -232,6 +251,7 @@ def run_all_invariants() -> dict:
     )
     results["I4_policy_monotonicity"] = invariant_policy_monotonicity()
     results["I5_merkle_tamper"] = invariant_merkle_tamper()
+    results["I5b_merkle_no_collision"] = invariant_merkle_no_collision()
     results["I6_authorization_gate"] = invariant_authorization_gate(
         tempfile.mktemp(suffix=".db")
     )

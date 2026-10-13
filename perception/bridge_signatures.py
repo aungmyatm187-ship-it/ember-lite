@@ -10,6 +10,7 @@ Premium: Cryptographic Provenance
 import os
 import json
 import base64
+import hashlib
 from cryptography.hazmat.primitives.asymmetric import ed25519
 from cryptography.hazmat.primitives import serialization
 
@@ -91,7 +92,11 @@ def sign(payload, terminal: str = "T") -> dict:
         "signature": base64.b64encode(signature).decode(),
         "public_key": base64.b64encode(pub_bytes).decode(),
         "algorithm": "Ed25519",
-        "payload_hash": data.hex()[:16]
+        # A stable fingerprint of the signing key, so a receipt identifies WHICH
+        # key signed it (for rotation/revocation). Not a hash of the payload.
+        "key_id": base64.b64encode(hashlib.sha256(pub_bytes).digest()).decode()[:16],
+        # Full sha256 of the exact signed bytes, so a verifier can re-derive it.
+        "payload_hash": hashlib.sha256(data).hexdigest(),
     }
 
 

@@ -21,7 +21,7 @@ from perception.database import (
 # =========================================================
 
 class BackendObserver(BaseObserver):
-    """Ember Signal Backend ရဲ့ Health ကို စောင့်ကြည့်ခြင်း"""
+    """Monitor Ember Signal Backend health"""
     
     def __init__(self, url=None):
         super().__init__("backend", category="health")
@@ -64,7 +64,7 @@ class BackendObserver(BaseObserver):
 # =========================================================
 
 class RepoObserver(BaseObserver):
-    """Git Repository ရဲ့ State ကို စောင့်ကြည့်ခြင်း"""
+    """Monitor git repository state"""
     
     def __init__(self, path=None):
         super().__init__("repo", category="state")
@@ -109,7 +109,7 @@ class RepoObserver(BaseObserver):
         return "dirty"
     
     def _score_confidence(self, data):
-        return 95  # Git က အမြဲ ယုံကြည်ရတယ်
+        return 95  # Git is always trustworthy
 
 
 # =========================================================
@@ -117,13 +117,13 @@ class RepoObserver(BaseObserver):
 # =========================================================
 
 class EvidenceObserver(BaseObserver):
-    """Provenance Database ရဲ့ အနေအထားကို စောင့်ကြည့်ခြင်း"""
+    """Monitor provenance database state"""
     
     def __init__(self):
         super().__init__("evidence", category="provenance")
     
     def _fetch(self):
-        # ember-lite root ထဲက provenance.db ကို ကြည့်
+        # Check provenance.db in ember-lite root
         import sqlite3
         db_path = os.path.expanduser("~/ember-lite/provenance.db")
         
@@ -166,7 +166,7 @@ class EvidenceObserver(BaseObserver):
         return "clear"
     
     def _score_confidence(self, data):
-        return 99  # Database က အမြဲ တိကျ
+        return 99  # Database is always accurate
 
 
 # =========================================================
@@ -174,13 +174,13 @@ class EvidenceObserver(BaseObserver):
 # =========================================================
 
 class LocalObserver(BaseObserver):
-    """Local Terminal Environment ကို စောင့်ကြည့်ခြင်း"""
+    """Monitor local terminal environment"""
     
     def __init__(self):
         super().__init__("local", category="environment")
     
     def _fetch(self):
-        disk = shutil.disk_usage("/")
+        disk = shutil.disk_usage(os.path.expanduser("~"))
         return {
             "disk_free_gb": round(disk.free / (1024**3), 2),
             "disk_used_gb": round(disk.used / (1024**3), 2),
@@ -198,15 +198,15 @@ class LocalObserver(BaseObserver):
         return "healthy"
     
     def _score_confidence(self, data):
-        return 100  # Local က အမြဲ တိကျ
+        return 100  # Local is always accurate
 
 
 # =========================================================
-# OBSERVER REGISTRY — အားလုံးကို စုစည်းခြင်း
+# OBSERVER REGISTRY — collect all
 # =========================================================
 
 def get_all_observers():
-    """Observers အားလုံးကို ပြန်ပေးခြင်း"""
+    """Return all observers"""
     return [
         BackendObserver(),
         RepoObserver(),
@@ -234,7 +234,7 @@ if __name__ == "__main__":
         if obs['error_type']:
             print(f"   ⚠️  Error:  {obs['error_type']}")
         
-        # Database ထဲ သိမ်း
+        # Save to database
         save_observation(obs)
         print(f"   💾 Saved to DB")
     

@@ -30,7 +30,7 @@ def _key_paths(terminal: str):
 
 
 def generate_keypair(terminal: str) -> dict:
-    """Terminal အတွက် Ed25519 Keypair ဖန်တီးခြင်း"""
+    """Create an Ed25519 keypair for a terminal"""
     _ensure_key_dir()
     priv_path, pub_path = _key_paths(terminal)
     
@@ -73,7 +73,7 @@ def _load_public(terminal: str):
 
 
 def sign(payload, terminal: str = "T") -> dict:
-    """Payload ကို Sign လုပ်ခြင်း"""
+    """Sign a payload"""
     if isinstance(payload, (dict, list)):
         data = json.dumps(payload, sort_keys=True).encode()
     else:
@@ -101,7 +101,7 @@ def sign(payload, terminal: str = "T") -> dict:
 
 
 def verify(payload, signature_b64: str, public_key_b64: str) -> bool:
-    """Signature ကို Verify လုပ်ခြင်း"""
+    """Verify a signature"""
     try:
         if isinstance(payload, (dict, list)):
             data = json.dumps(payload, sort_keys=True).encode()

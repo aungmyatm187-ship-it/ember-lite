@@ -42,7 +42,7 @@ def iso_now() -> str:
 
 def get_number(data: dict, key: str) -> float | None:
     """
-    KPI #1: မရှိရင် None ပြန် — Default မသုံး
+    KPI #1: return None if missing — do not use a default
     """
     if key not in data:
         return None
@@ -81,7 +81,7 @@ def action_item(action: str, reason: str, priority: str,
 
 def validate_baseline(baseline: dict | None) -> dict:
     """
-    KPI #1: Baseline မရှိရင် 'insufficient_data'
+    KPI #1: 'insufficient_data' if no baseline
     """
     if not baseline:
         return {"valid": False, "reason": "Baseline is missing entirely"}
@@ -104,7 +104,7 @@ def validate_baseline(baseline: dict | None) -> dict:
 
 def compute_temporal_trend(history: list) -> dict:
     """
-    KPI #1: <3 observations ဆိုရင် 'unavailable' ပြန် — Fabricate မလုပ်
+    KPI #1: 'unavailable' if <3 observations — do not fabricate
     """
     valid = [h for h in history if h.get("captured_at")]
     valid.sort(key=lambda h: h["captured_at"])

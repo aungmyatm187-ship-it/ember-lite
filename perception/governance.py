@@ -23,7 +23,7 @@ DB_PATH = os.path.join(os.path.dirname(__file__), "governance.db")
 # =========================================================
 
 def init_governance_db():
-    """Governance Database ဖန်တီးခြင်း"""
+    """Create the governance database"""
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     
@@ -136,7 +136,7 @@ DEFAULT_POLICIES = [
 
 
 def seed_policies():
-    """Default Policies တွေ ထည့်ခြင်း"""
+    """Insert default policies"""
     init_governance_db()
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -155,7 +155,7 @@ def seed_policies():
 
 def evaluate_policies(context: dict) -> dict:
     """
-    Policy အားလုံးကို Context ပေါ်မှာ Evaluate လုပ်ခြင်း
+    Evaluate all policies against a context
     
     Args:
         context: {
@@ -169,6 +169,7 @@ def evaluate_policies(context: dict) -> dict:
     Returns: Evaluation results
     """
     seed_policies()
+    seed_capabilities()
     evaluation_id = str(uuid.uuid4())[:12]
     
     conn = sqlite3.connect(DB_PATH)
@@ -250,7 +251,7 @@ DEFAULT_CAPABILITIES = [
 
 
 def seed_capabilities():
-    """Default Capabilities ထည့်ခြင်း"""
+    """Insert default capabilities"""
     init_governance_db()
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -265,7 +266,7 @@ def seed_capabilities():
 
 
 def check_capability(terminal: str, capability: str) -> dict:
-    """Capability တစ်ခုကို စစ်ဆေးခြင်း"""
+    """Check a capability"""
     seed_capabilities()
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -294,7 +295,7 @@ def check_capability(terminal: str, capability: str) -> dict:
 
 def create_approval_gate(action_hash: str, action_type: str,
                          risk_level: str, required: int = 1) -> dict:
-    """Approval Gate အသစ် ဖန်တီးခြင်း"""
+    """Create a new approval gate"""
     init_governance_db()
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -326,7 +327,7 @@ def create_approval_gate(action_hash: str, action_type: str,
 
 
 def approve_gate(action_hash: str, approver: str) -> dict:
-    """Approval Gate ကို အတည်ပြုခြင်း"""
+    """Approve an approval gate"""
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("""
@@ -365,6 +366,8 @@ def approve_gate(action_hash: str, approver: str) -> dict:
 def get_governance_summary() -> dict:
     """Governance Summary"""
     init_governance_db()
+    seed_policies()
+    seed_capabilities()
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     

@@ -1,6 +1,6 @@
 """
 Ember Perception Layer
-အားလုံးကို ပေါင်းစပ်ပြီး Single Entry Point ပေးခြင်း
+Combines everything and provides a single entry point
 
 Usage:
     from perception.layer import perceive
@@ -17,19 +17,19 @@ from perception.database import init_db, save_observation
 
 class PerceptionLayer:
     """
-    Ember ရဲ့ အာရုံခံစနစ်
+    Ember's perception system
     Observers → Database → Analysis → Report
     """
     
     def __init__(self, observer_filter=None):
         """
         Args:
-            observer_filter: Observer နာမည် list (None = အားလုံး)
+            observer_filter: List of observer names (None = all)
         """
         init_db()
         self.observers = get_all_observers()
         
-        # Filter လုပ်ခြင်း
+        # Apply filter
         if observer_filter:
             self.observers = [
                 o for o in self.observers if o.name in observer_filter
@@ -39,10 +39,10 @@ class PerceptionLayer:
     
     def perceive(self, save=True) -> dict:
         """
-        Observations စုဆောင်းပြီး Analysis လုပ်ခြင်း
+        Collect observations and run analysis
         
         Args:
-            save: Database ထဲ သိမ်းမလား
+            save: whether to save to the database
         
         Returns: Full perception report
         """
@@ -54,7 +54,7 @@ class PerceptionLayer:
             "analysis": {}
         }
         
-        # 1. Observations စုဆောင်းခြင်း
+        # 1. Collect observations
         for observer in self.observers:
             try:
                 obs = observer.observe()
@@ -68,7 +68,7 @@ class PerceptionLayer:
                     "error": str(e)
                 })
         
-        # 2. Analysis လုပ်ခြင်း
+        # 2. Run analysis
         report["analysis"] = self.analysis_engine.analyze(
             report["observations"]
         )
@@ -77,7 +77,7 @@ class PerceptionLayer:
     
     def quick_perceive(self) -> dict:
         """
-        Save မလုပ်ဘဲ အမြန် Perceive လုပ်ခြင်း
+        Fast perceive without saving
         """
         return self.perceive(save=False)
 
@@ -88,11 +88,11 @@ class PerceptionLayer:
 
 def perceive(observer_filter=None, save=True) -> dict:
     """
-    Ember ကို စောင့်ကြည့်ခိုင်းခြင်း
+    Ask Ember to observe
     
     Args:
-        observer_filter: ["backend", "repo"] စသည်
-        save: Database ထဲ သိမ်းမလား
+        observer_filter: e.g. ["backend", "repo"]
+        save: whether to save to the database
     
     Returns: perception report
     """
@@ -102,7 +102,7 @@ def perceive(observer_filter=None, save=True) -> dict:
 
 def perceive_summary(report: dict) -> str:
     """
-    Report ကို လူဖတ်လို့ရတဲ့ Summary အဖြစ် ပြောင်းခြင်း
+    Convert report into a human-readable summary
     """
     analysis = report.get("analysis", {})
     observations = report.get("observations", {})

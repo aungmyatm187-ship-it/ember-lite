@@ -27,7 +27,7 @@ DB_PATH = os.path.join(os.path.dirname(__file__), "bridge.db")
 # =========================================================
 
 def init_bridge_db():
-    """Bridge Database ဖန်တီးခြင်း"""
+    """Create the bridge database"""
     conn = sqlite3.connect(DB_PATH)
     
     # WAL Mode = Concurrent Reads + Crash Safety
@@ -105,7 +105,7 @@ def init_bridge_db():
 # =========================================================
 
 def create_channel(name: str, description: str = "") -> bool:
-    """Channel အသစ် ဖန်တီးခြင်း"""
+    """Create a new channel"""
     conn = sqlite3.connect(DB_PATH)
     try:
         conn.execute(
@@ -121,7 +121,7 @@ def create_channel(name: str, description: str = "") -> bool:
 
 
 def list_channels() -> list:
-    """Channel တွေ စာရင်း"""
+    """List channels"""
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("SELECT name, description, created_at FROM channels ORDER BY name")
@@ -138,7 +138,7 @@ def list_channels() -> list:
 # =========================================================
 
 def _next_lamport_clock() -> int:
-    """Lamport Clock ကို တိုးခြင်း (Distributed Ordering အတွက်)"""
+    """Increment the Lamport clock (for distributed ordering)"""
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("SELECT MAX(lamport_clock) FROM messages")
@@ -156,19 +156,19 @@ def send_message(
     priority: int = 5
 ) -> dict:
     """
-    Message ပို့ခြင်း (Idempotent)
+    Send a message (idempotent)
     
     Args:
-        channel: Channel နာမည်
-        sender: ပို့သူ (terminal label)
+        channel: channel name
+        sender: sender (terminal label)
         payload: Dict payload
-        recipient: လက်ခံသူ (None = broadcast)
-        idempotency_key: Duplicate ကာကွယ်ဖို့
+        recipient: recipient (None = broadcast)
+        idempotency_key: duplicate protection
         priority: 1 (highest) - 9 (lowest)
     
     Returns: result dict
     """
-    # Idempotency Key မရှိရင် Auto-generate
+    # Auto-generate idempotency key if missing
     if not idempotency_key:
         idempotency_key = f"{channel}:{sender}:{uuid.uuid4().hex[:16]}"
     
@@ -189,12 +189,12 @@ def send_message(
             "idempotency_key": idempotency_key
         }
     
-    # Channel ရှိမရှိ စစ်
+    # Check if channel exists
     c.execute("SELECT name FROM channels WHERE name = ?", (channel,))
     if not c.fetchone():
         create_channel(channel)
     
-    # Message ထည့်
+    # Insert message
     message_id = str(uuid.uuid4())
     lamport = _next_lamport_clock()
     
@@ -231,13 +231,13 @@ def receive_messages(
     mark_delivered: bool = True
 ) -> list:
     """
-    Terminal တစ်ခုအတွက် Message တွေ ရယူခြင်း
+    Fetch messages for a terminal
     
     Args:
         terminal: Terminal label (@ or T)
         channel: Channel filter (None = all)
-        limit: အများဆုံး ဘယ်နှစ်ခု
-        mark_delivered: ရယူပြီးရင် Delivered လို့ သတ်မှတ်
+        limit: maximum number to return
+        mark_delivered: mark as delivered after fetching
     
     Returns: list of messages
     """
@@ -289,7 +289,7 @@ def receive_messages(
 
 
 def ack_message(message_id: str) -> bool:
-    """Message ကို Acknowledge လုပ်ခြင်း"""
+    """Acknowledge a message"""
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("""
@@ -304,7 +304,7 @@ def ack_message(message_id: str) -> bool:
 
 
 def move_to_dlq(message_id: str, reason: str) -> bool:
-    """Message ကို Dead Letter Queue ထဲ ရွှေ့ခြင်း"""
+    """Move a message to the dead letter queue"""
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     
@@ -335,7 +335,7 @@ def move_to_dlq(message_id: str, reason: str) -> bool:
 # =========================================================
 
 def heartbeat(terminal: str, metadata: dict = None):
-    """Terminal တစ်ခုရဲ့ Heartbeat"""
+    """Heartbeat for a terminal"""
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("""
@@ -348,7 +348,7 @@ def heartbeat(terminal: str, metadata: dict = None):
 
 
 def get_active_terminals(max_age_seconds: int = 300) -> list:
-    """Active Terminal တွေ စာရင်း (၅ မိနစ်အတွင်း Heartbeat ရှိသူ)"""
+    """List active terminals (heartbeat within 5 minutes)"""
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("""

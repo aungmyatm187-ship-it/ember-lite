@@ -107,3 +107,17 @@ Consequences:
 - Anchors created from now on use the promotion scheme.
 - perception/federated_verify.py accepts an old anchor and reports which scheme it used (merkle_scheme: promote | legacy_duplicate) instead of falsely calling a genuine old commitment tampered.
 - invariants.py gains I5b_merkle_no_collision, and tests/test_merkle.py covers sizes 1-16, tampering, cross-root rejection, and domain separation.
+
+## ADR-009: ember-lite is an installable library; inclusion proofs and receipts are engine-side
+
+Status: Accepted
+
+Decision: Add a pyproject.toml (package "perception" + top-level modules, console script ember-lite=ember_agent:main) so ember-signal can import the engine instead of shelling out. Add perception/inclusion_proof.py (per-block Merkle inclusion proof + anchor verification) and perception/receipts.py (Ed25519 receipt over an arbitrary response payload).
+
+Context: ember-signal runs ember-lite in a subprocess because it "ships no pyproject/setup.py, so it cannot be pip install"ed" (its engine.py says so). Packaging removes that constraint without removing the subprocess path. Inclusion proofs let a holder of one block and an anchor root confirm inclusion offline; receipts let a client verify a response really came from the engine. Both build on the corrected Merkle tree (ADR-008).
+
+Consequences:
+- pip install -e . exposes perception and the top-level modules; the console script points at the existing ember_agent.main.
+- inclusion_proof accepts either Merkle scheme and reports the scheme that matched an anchor.
+- receipts never return a receipt claiming a signature they do not have: when cryptography is absent they return {"signed": false, "error": ...}.
+- Tests: tests/test_inclusion_proof.py, tests/test_receipts.py; the engine contract test now also pins the new surfaces.

@@ -58,3 +58,21 @@ def test_evidence_chain_surface():
     result = verify_chain()
     assert isinstance(result["valid"], bool)
     assert "blocks" in result
+
+
+def test_inclusion_proof_surface():
+    from perception import inclusion_proof as ip
+
+    assert callable(ip.build_chain_inclusion_proof)
+    assert callable(ip.verify_chain_inclusion_proof)
+    assert callable(ip.verify_inclusion_against_anchor)
+
+
+def test_receipts_surface():
+    from perception import receipts
+
+    assert callable(receipts.sign_receipt)
+    assert callable(receipts.verify_receipt)
+
+    receipt = receipts.sign_receipt({"status": "ok"}, terminal="T")
+    assert receipts.verify_receipt(receipt)["valid"] is True

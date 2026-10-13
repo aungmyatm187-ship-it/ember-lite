@@ -24,7 +24,7 @@ import json
 from datetime import datetime, timezone
 from typing import Any
 
-from perception.merkle import hash_leaf, root_hash
+from perception.merkle import hash_leaf, legacy_root_hash, root_hash
 
 
 def _hash(p: Any) -> str:
@@ -79,18 +79,28 @@ def verify_anchor_bundle(
 
     # 3. Merkle root recomputation (if leaves provided)
     merkle_ok = None
+    merkle_scheme = None
     if block_hashes is not None:
         if len(block_hashes) != anchor.get("block_count"):
             merkle_ok = False
         else:
             leaves = [hash_leaf(bh) for bh in block_hashes]
-            merkle_ok = root_hash(leaves) == anchor["merkle_root"]
+            if root_hash(leaves) == anchor["merkle_root"]:
+                merkle_ok, merkle_scheme = True, "promote"
+            elif legacy_root_hash(leaves) == anchor["merkle_root"]:
+                # Anchor predates the 2026-10-13 fix, which duplicated a
+                # trailing odd node. The commitment is still authentic; record
+                # which scheme it used rather than failing it.
+                merkle_ok, merkle_scheme = True, "legacy_duplicate"
+            else:
+                merkle_ok = False
 
     return {
         "valid": hash_ok and sig_ok and (merkle_ok is not False),
         "hash_ok": hash_ok,
         "signature_ok": sig_ok,
         "merkle_ok": merkle_ok,
+        "merkle_scheme": merkle_scheme,
         "anchor_id": anchor["anchor_id"],
         "device_id": anchor["device_id"],
         "sequence_number": anchor["sequence_number"],

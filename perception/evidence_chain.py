@@ -147,7 +147,7 @@ def add_observation(observation: dict, terminal: str = "cloud") -> dict:
             signed_result = sign(block_payload, terminal=terminal)
             signature = signed_result.get("signature")
             public_key = signed_result.get("public_key")
-            key_id = signed_result.get("lib", "unknown")
+            key_id = signed_result.get("key_id")
             signed = bool(signature)
         except Exception as exc:
             sign_error = f"{type(exc).__name__}: {exc}"

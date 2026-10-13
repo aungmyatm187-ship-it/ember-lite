@@ -5,13 +5,25 @@ Minimal, auditable Merkle tree for evidence-chain batching.
 
 Design:
     - SHA-256, canonical leaf ordering (ascending block_index)
+    - Domain separation: leaf prefix 0x00, internal node prefix 0x01
+      (RFC 6962 style), so a leaf can never be read as an internal node
     - Non-recursive construction (fits Tab A memory)
-    - Proof generation and verification
+    - A lone node at the end of a level is PROMOTED unchanged; it is never
+      duplicated. Duplication lets two different leaf sets share a root.
+    - Inclusion proof generation and offline verification
     - No external dependencies
 
 Why Merkle:
-    A single daily root hash commits to every block in the chain.
-    Anyone can verify any block is included without seeing the rest.
+    A single anchor root commits to every block in the batch. Anyone can prove
+    that any block is included without seeing the rest.
+
+Compatibility note (2026-10-13):
+    Older builds duplicated a trailing odd node (Bitcoin-style) and let
+    build_proof pad each level independently of build_tree. That made
+    root([a, b, c]) equal root([a, b, c, c]) and could emit a proof that paired
+    a node with itself. root_hash() now promotes the lone node instead.
+    legacy_root_hash() reproduces the old value only so a pre-existing anchor
+    can still be re-verified during migration; never use it for new anchors.
 
 Pure Python stdlib only.
 """
@@ -23,16 +35,11 @@ import json
 from typing import Any
 
 
-# =========================================================
-# HASHING
-# =========================================================
-
 def _hash_leaf(data: Any) -> str:
     """Leaf hash: SHA256(0x00 || canonical_bytes)."""
     if isinstance(data, (dict, list)):
         payload = json.dumps(
-            data, sort_keys=True, separators=(",", ":"),
-            default=str,
+            data, sort_keys=True, separators=(",", ":"), default=str,
         ).encode("utf-8")
     elif isinstance(data, bytes):
         payload = data
@@ -48,85 +55,89 @@ def _hash_pair(left: str, right: str) -> str:
     ).hexdigest()
 
 
-# =========================================================
-# TREE CONSTRUCTION
-# =========================================================
+def _next_level(current: list[str]) -> list[str]:
+    """One level up: pair left-to-right, promote a lone trailing node."""
+    nxt = [
+        _hash_pair(current[i], current[i + 1])
+        for i in range(0, len(current) - 1, 2)
+    ]
+    if len(current) % 2 == 1:
+        nxt.append(current[-1])
+    return nxt
+
 
 def build_tree(leaves: list[str]) -> list[list[str]]:
     """
-    Build a Merkle tree bottom-up.
+    Build a Merkle tree bottom-up from already-hashed leaves.
 
-    Returns list of levels: levels[0] = leaf hashes,
-    levels[-1] = [root].
+    Returns levels; levels[0] = leaf hashes, levels[-1] = [root]. An empty
+    input returns [] -- there is no root of nothing.
     """
     if not leaves:
-        return [[hashlib.sha256(b"\x00").hexdigest()]]
-
+        return []
     current = list(leaves)
     levels = [current]
-
     while len(current) > 1:
-        if len(current) % 2 == 1:
-            # Duplicate last leaf (Bitcoin-style)
-            current = current + [current[-1]]
-        next_level = []
-        for i in range(0, len(current), 2):
-            next_level.append(_hash_pair(current[i], current[i + 1]))
-        current = next_level
+        current = _next_level(current)
         levels.append(current)
-
     return levels
 
 
 def root_hash(leaves: list[str]) -> str:
+    """Root over `leaves`. Raises ValueError on an empty batch."""
     levels = build_tree(leaves)
+    if not levels:
+        raise ValueError("cannot compute a Merkle root over an empty batch")
     return levels[-1][0]
 
 
-# =========================================================
-# PROOF
-# =========================================================
+def legacy_root_hash(leaves: list[str]) -> str:
+    """
+    Reproduce the pre-2026-10-13 root, which duplicated a trailing odd node.
+
+    Kept only so an anchor created by an older build can be re-verified. This
+    construction is cryptographically unsound; do not use it for new anchors.
+    """
+    if not leaves:
+        raise ValueError("cannot compute a Merkle root over an empty batch")
+    current = list(leaves)
+    while len(current) > 1:
+        if len(current) % 2 == 1:
+            current = current + [current[-1]]
+        current = [
+            _hash_pair(current[i], current[i + 1])
+            for i in range(0, len(current), 2)
+        ]
+    return current[0]
+
 
 def build_proof(leaves: list[str], index: int) -> list[dict]:
     """
     Build a Merkle proof for the leaf at `index`.
 
-    Proof is a list of {position: 'left'|'right', hash: str}.
+    A list of {"position": "left"|"right", "hash": str}. Each step comes from
+    the same level walk build_tree uses, so a proof never pairs a node with
+    itself.
     """
-    if not leaves:
-        return []
     if index < 0 or index >= len(leaves):
         raise IndexError(f"index {index} out of range")
 
-    levels = build_tree(leaves)
-    proof = []
+    proof: list[dict] = []
+    current = list(leaves)
     idx = index
-
-    for level in levels[:-1]:
-        # Pad if needed
-        if len(level) % 2 == 1:
-            level = level + [level[-1]]
-
-        if idx % 2 == 0:
-            sibling_pos = "right"
-            sibling_idx = idx + 1
-        else:
-            sibling_pos = "left"
-            sibling_idx = idx - 1
-
-        if sibling_idx < len(level):
-            proof.append({
-                "position": sibling_pos,
-                "hash": level[sibling_idx],
-            })
-
-        idx = idx // 2
-
+    while len(current) > 1:
+        if idx % 2 == 1:
+            proof.append({"position": "left", "hash": current[idx - 1]})
+        elif idx + 1 < len(current):
+            proof.append({"position": "right", "hash": current[idx + 1]})
+        # else: idx is the promoted lone node -- no sibling at this level.
+        current = _next_level(current)
+        idx //= 2
     return proof
 
 
 def verify_proof(leaf: str, proof: list[dict], expected_root: str) -> bool:
-    """Recompute the root from a leaf + proof and compare."""
+    """Recompute the root from a leaf hash + proof and compare."""
     current = leaf
     for step in proof:
         if step["position"] == "left":
@@ -138,14 +149,9 @@ def verify_proof(leaf: str, proof: list[dict], expected_root: str) -> bool:
     return current == expected_root
 
 
-# =========================================================
-# PUBLIC API
-# =========================================================
-
 def merkle_root_from_payloads(payloads: list[Any]) -> str:
     """Convenience: hash a list of payloads and return the root."""
-    leaves = [_hash_leaf(p) for p in payloads]
-    return root_hash(leaves)
+    return root_hash([_hash_leaf(p) for p in payloads])
 
 
 def hash_leaf(data: Any) -> str:
@@ -154,20 +160,15 @@ def hash_leaf(data: Any) -> str:
 
 
 if __name__ == "__main__":
-    # Smoke test
     payloads = [{"i": i, "v": f"obs-{i}"} for i in range(7)]
     leaves = [_hash_leaf(p) for p in payloads]
     root = root_hash(leaves)
     print("Root:", root[:24], "...")
-
     for i in range(len(leaves)):
-        proof = build_proof(leaves, i)
-        ok = verify_proof(leaves[i], proof, root)
-        assert ok, f"proof failed for leaf {i}"
-    print(f"✅ All {len(leaves)} proofs verified")
-
-    # Tamper check
-    bad_proof = build_proof(leaves, 0)
-    bad_leaf = _hash_leaf({"tampered": True})
-    assert not verify_proof(bad_leaf, bad_proof, root)
-    print("✅ Tampered leaf rejected")
+        assert verify_proof(leaves[i], build_proof(leaves, i), root), i
+    print(f"OK: all {len(leaves)} proofs verified")
+    assert not verify_proof(_hash_leaf({"tampered": True}), build_proof(leaves, 0), root)
+    print("OK: tampered leaf rejected")
+    a, b, c = (_hash_leaf({"i": x}) for x in "abc")
+    assert root_hash([a, b, c]) != root_hash([a, b, c, c])
+    print("OK: odd-length duplication no longer collides")

@@ -66,6 +66,11 @@ def test_missing_data_never_ships(isolated_dbs):
     assert all("reason" in r["details"] for r in unknown)
 
 
+def test_empty_observations_are_unknown(perception_db):
+    result = rg._evaluate_security({})
+    assert result["status"] == "UNKNOWN"
+
+
 def test_unknown_gates_excluded_from_score(isolated_dbs, perception_db):
     """Only the one present gate (security) contributes to the score."""
     _seed_perception(perception_db, status="healthy")

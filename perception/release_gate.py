@@ -141,6 +141,8 @@ def _evaluate_security(perception_data: dict) -> dict:
         critical_count = c.fetchone()[0] or 0
         c.execute("SELECT COUNT(*) FROM observations")
         total = c.fetchone()[0] or 0
+        if total == 0:
+            return _unknown("security", "no observations recorded")
         conn.close()
     except Exception as exc:
         return _unknown("security", f"perception DB unreadable: {type(exc).__name__}")

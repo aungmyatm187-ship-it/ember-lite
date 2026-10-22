@@ -1,6 +1,6 @@
 """
 Ember Perception - Monitor
-နောက်ခံမှာ Periodically Perceive လုပ်ခြင်း
+Periodically perceive in the background
 """
 
 import time
@@ -13,14 +13,14 @@ from perception.suggestion import SuggestionGenerator
 
 class PerceptionMonitor:
     """
-    Monitor က Periodically Perceive လုပ်ပြီး
-    Triggers ရှိရင် Suggestions ထုတ်ပေးတယ်
+    The monitor periodically perceives and
+    emits suggestions when triggers fire
     """
     
     def __init__(self, interval_minutes: int = 15, brain=None):
         """
         Args:
-            interval_minutes: ဘယ်လောက်ကြာတစ်ခါ စစ်မလဲ
+            interval_minutes: how often to check
             brain: Optional EmberBrain for enhanced suggestions
         """
         self.interval = interval_minutes * 60
@@ -34,7 +34,7 @@ class PerceptionMonitor:
         self.last_run = None
     
     def run_once(self, callback=None) -> dict:
-        """တစ်ခါ Perceive လုပ်ခြင်း"""
+        """Run one perception cycle"""
         self.run_count += 1
         self.last_run = datetime.now().isoformat()
         
@@ -75,7 +75,7 @@ class PerceptionMonitor:
         return result
     
     def run_forever(self, callback=None, max_iterations: int = None):
-        """အဆက်မပြတ် Monitor လုပ်ခြင်း (Loop)"""
+        """Continuous monitor loop"""
         iteration = 0
         
         try:
@@ -101,7 +101,7 @@ class PerceptionMonitor:
             print("\n🛑 Monitor stopped.")
     
     def get_stats(self) -> dict:
-        """Monitor ရဲ့ Statistics"""
+        """Monitor statistics"""
         total_suggestions = sum(
             h["count"] for h in self.suggestions_history
         )

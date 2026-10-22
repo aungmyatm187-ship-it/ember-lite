@@ -1,6 +1,6 @@
 """
 Ember Perception - Analysis Engine
-Observation တွေကို နားလည်တဲ့ ဦးနှောက်
+The brain that understands observations
 """
 
 from datetime import datetime
@@ -10,21 +10,21 @@ from perception.database import (
 
 
 # =========================================================
-# 1. CHANGE DETECTOR — ဘာပြောင်းလဲသွားလဲ?
+# 1. CHANGE DETECTOR - What changed?
 # =========================================================
 
 class ChangeDetector:
-    """Observation အသစ်နဲ့ အဟောင်း နှိုင်းယှဉ်ခြင်း"""
+    """Compare new and old observations"""
     
-    # ပြောင်းလဲမှုကို ခြေရာခံမယ့် Field များ
+    # Fields to track for changes
     TRACKED_FIELDS = ["status", "confidence", "error_type"]
     
     def detect(self, new_obs: dict, old_obs: dict) -> dict:
         """
-        Observation အသစ်နဲ့ အဟောင်း နှိုင်းယှဉ်ခြင်း
+        Compare new and old observations
         Returns: change report
         """
-        # ပထမဆုံး Observation ဆိုရင်
+        # First observation ever
         if not old_obs:
             return {
                 "changed": False,
@@ -44,7 +44,7 @@ class ChangeDetector:
                     "severity": self._severity(field, old_val, new_val)
                 }
         
-        # ပြောင်းလဲမှုကို Database ထဲ မှတ်တမ်းတင်ခြင်း
+        # Log the change to the database
         for field, change in changes.items():
             log_change(
                 new_obs["source"], field,
@@ -59,7 +59,7 @@ class ChangeDetector:
         }
     
     def _severity(self, field: str, old_val, new_val) -> str:
-        """ပြောင်းလဲမှုရဲ့ ပြင်းထန်မှုကို သတ်မှတ်ခြင်း"""
+        """Determine the severity of a change"""
         if field == "status":
             # healthy → down = critical
             if old_val == "healthy" and new_val in ["down", "error", "critical"]:
@@ -92,53 +92,53 @@ class ChangeDetector:
 
 
 # =========================================================
-# 2. CORRELATION ENGINE — Signal တွေ ဘယ်လို ဆက်စပ်နေလဲ?
+# 2. CORRELATION ENGINE - How do signals correlate?
 # =========================================================
 
 class CorrelationEngine:
-    """Signal တွေ ကြားက ဆက်စပ်မှုကို ရှာခြင်း"""
+    """Find correlations between signals"""
     
-    # Pattern → Insight များ
+    # Pattern -> Insights
     PATTERNS = [
         {
             "requires": ["backend:down", "repo:clean"],
-            "insight": "Backend ပျက်နေတယ်၊ ဒါပေမယ့် Code က သန့်ရှင်းတယ်",
-            "action": "Railway Deployment Log တွေကို စစ်ပါ",
+            "insight": "Backend is down, but the code is clean",
+            "action": "Check Railway deployment logs",
             "confidence": 85,
             "severity": "critical"
         },
         {
             "requires": ["backend:healthy", "repo:dirty"],
-            "insight": "Backend ကောင်းနေတယ်၊ Commit လုပ်ဖို့ အဆင်သင့်ဖြစ်နေတယ်",
-            "action": "Pending changes တွေကို Commit & Push လုပ်ပါ",
+            "insight": "Backend is healthy - ready to commit",
+            "action": "Commit and push pending changes",
             "confidence": 90,
             "severity": "info"
         },
         {
             "requires": ["backend:healthy", "repo:clean", "evidence:clear"],
-            "insight": "Signals အားလုံး ကိုက်ညီနေတယ် — Release အတွက် အဆင်သင့်",
-            "action": "Release Gate Evaluation ကို ဆက်လုပ်ပါ",
+            "insight": "All signals aligned - ready for release",
+            "action": "Continue with Release Gate Evaluation",
             "confidence": 87,
             "severity": "success"
         },
         {
             "requires": ["evidence:backlog", "backend:healthy"],
-            "insight": "Backend ကောင်းပေမယ့် Approvals တွေ စုပုံနေတယ်",
-            "action": "Pending approvals တွေကို Review လုပ်ပါ",
+            "insight": "Backend is healthy, but approvals are piling up",
+            "action": "Review pending approvals",
             "confidence": 80,
             "severity": "warning"
         },
         {
             "requires": ["local:critical"],
-            "insight": "Disk Space ကုန်ခါနီးနေတယ်",
-            "action": "မလိုအပ်တဲ့ ဖိုင်တွေ ရှင်းပါ",
+            "insight": "Disk space is running low",
+            "action": "Clean up unnecessary files",
             "confidence": 95,
             "severity": "critical"
         },
         {
             "requires": ["backend:degraded"],
-            "insight": "Backend က အားနည်းနေတယ် (Degraded)",
-            "action": "Backend response time ကို စောင့်ကြည့်ပါ",
+            "insight": "Backend is degraded",
+            "action": "Monitor backend response time",
             "confidence": 75,
             "severity": "warning"
         }
@@ -146,12 +146,12 @@ class CorrelationEngine:
     
     def correlate(self, observations: dict) -> list:
         """
-        Observations တွေကို ဆက်စပ်ကြည့်ခြင်း
+        Correlate observations
         Args:
             observations: {"backend": obs_dict, "repo": obs_dict, ...}
         Returns: List of matched insights
         """
-        # Signal တွေကို "source:status" format နဲ့ ဖန်တီး
+        # Build signals in "source:status" format
         signals = set()
         for source, obs in observations.items():
             if obs:
@@ -170,29 +170,29 @@ class CorrelationEngine:
                     "matched_signals": list(required)
                 })
         
-        # Confidence အလိုက် Sort
+        # Sort by confidence
         matches.sort(key=lambda x: x["confidence"], reverse=True)
         return matches
 
 
 # =========================================================
-# 3. CONFIDENCE SCORER — ဘယ်လောက် ယုံကြည်ရလဲ?
+# 3. CONFIDENCE SCORER - How much can we trust this?
 # =========================================================
 
 class ConfidenceScorer:
-    """Observation တစ်ခုချင်းစီရဲ့ Confidence ကို တွက်ချက်ခြင်း"""
+    """Calculate confidence for each observation"""
     
     def score(self, obs: dict, history: list) -> int:
         """
-        Source Reliability + Freshness + Consistency ကို ပေါင်းစပ်
+        Combine Source Reliability + Freshness + Consistency
         Returns: 0-100
         """
         base = obs.get("confidence", 50)
         
-        # 1. Freshness (အသစ်လား၊ ဟောင်းလား)
+        # 1. Freshness (new or old?)
         freshness = self._freshness_score(obs.get("observed_at"))
         
-        # 2. Consistency (အရင်က တူတူလား)
+        # 2. Consistency (same as before?)
         consistency = self._consistency_score(obs, history)
         
         # Weighted Average
@@ -205,7 +205,7 @@ class ConfidenceScorer:
         return max(0, min(100, final))
     
     def _freshness_score(self, timestamp_str: str) -> int:
-        """အချိန် ဘယ်လောက်ကြာပြီလဲ ဆိုတာ တွက်ချက်ခြင်း"""
+        """Calculate how long ago the observation was made"""
         if not timestamp_str:
             return 50
         
@@ -227,7 +227,7 @@ class ConfidenceScorer:
             return 50
     
     def _consistency_score(self, obs: dict, history: list) -> int:
-        """အရင်က Observation တွေနဲ့ ကိုက်ညီမှုရှိလား"""
+        """Check consistency with past observations"""
         if not history:
             return 50
         
@@ -236,7 +236,7 @@ class ConfidenceScorer:
         )
         ratio = same_status / len(history)
         
-        # 70%+ တူတူဆို ယုံကြည်မှု မြင့်
+        # 70%+ consistency means high confidence
         if ratio >= 0.9:
             return 100
         if ratio >= 0.7:
@@ -247,11 +247,11 @@ class ConfidenceScorer:
 
 
 # =========================================================
-# 4. ANALYSIS PIPELINE — အားလုံးကို ပေါင်းစပ်ခြင်း
+# 4. ANALYSIS PIPELINE - Combine everything
 # =========================================================
 
 class AnalysisEngine:
-    """Analysis အလွှာ အားလုံးကို ပေါင်းစပ်ခြင်း"""
+    """Combine all analysis layers"""
     
     def __init__(self):
         self.change_detector = ChangeDetector()
@@ -260,7 +260,7 @@ class AnalysisEngine:
     
     def analyze(self, new_observations: dict) -> dict:
         """
-        Observations အသစ်တွေကို ခွဲခြမ်းစိတ်ဖြာခြင်း
+        Analyze new observations
         
         Args:
             new_observations: {"backend": obs, "repo": obs, ...}
@@ -276,12 +276,12 @@ class AnalysisEngine:
             "overall_status": "unknown"
         }
         
-        # 1. Observation တစ်ခုချင်းစီကို ခွဲခြမ်းစိတ်ဖြာ
+        # 1. Analyze each observation
         for source, obs in new_observations.items():
             if not obs:
                 continue
             
-            # နောက်ဆုံး Observation ကို ရယူ
+            # Get the latest observation
             old_obs = get_latest_observation(source)
             
             # Change Detection
@@ -314,7 +314,7 @@ class AnalysisEngine:
         return report
     
     def _get_source_history(self, source: str, limit: int = 10) -> list:
-        """Source တစ်ခုရဲ့ သမိုင်းကြောင်းကို ရယူခြင်း"""
+        """Fetch the history of a source"""
         from perception.database import DB_PATH
         import sqlite3
         
@@ -335,7 +335,7 @@ class AnalysisEngine:
         ]
     
     def _overall_status(self, observations: dict) -> str:
-        """အားလုံးရဲ့ စုစုပေါင်း Status ကို သတ်မှတ်ခြင်း"""
+        """Determine the overall status of everything"""
         statuses = [o["status"] for o in observations.values() if o]
         
         if not statuses:
@@ -361,10 +361,10 @@ if __name__ == "__main__":
     print("  Testing Analysis Engine")
     print("=" * 60)
     
-    # Database Initialize
+    # Initialize database
     init_db()
     
-    # Observations စုဆောင်းခြင်း
+    # Collect observations
     observations = {}
     observers = get_all_observers()
     
@@ -375,12 +375,12 @@ if __name__ == "__main__":
         observations[observer.name] = obs
         print(f"   ✓ {observer.name}: {obs['status']}")
     
-    # Analysis လုပ်ခြင်း
+    # Run analysis
     print("\n🧠 Running analysis...")
     engine = AnalysisEngine()
     report = engine.analyze(observations)
     
-    # ရလဒ် ပြသခြင်း
+    # Show results
     print(f"\n{'=' * 60}")
     print(f"  ANALYSIS REPORT")
     print(f"{'=' * 60}")

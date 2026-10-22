@@ -138,6 +138,17 @@ except ImportError as e:
     BRIDGE_OK = False
     BRIDGE_ERROR = str(e)
 
+# Governance (P6)
+try:
+    from perception.governance import (
+        get_governance_summary as gov_summary,
+        evaluate_policies as gov_evaluate,
+    )
+    GOVERNANCE_OK = True
+except ImportError as e:
+    GOVERNANCE_OK = False
+    GOVERNANCE_ERROR = str(e)
+
 
 # =========================================================
 # EMBER AGENT
@@ -289,7 +300,7 @@ class EmberAgent:
         if not PERCEPTION_OK:
             console.print("[red]❌ Perception missing.[/red]")
             return
-        console.print("\n[dim]🔍 Ember က စောင့်ကြည့်နေသည်...[/dim]\n")
+        console.print("\n[dim]🔍 Ember is observing...[/dim]\n")
         with console.status("[bold green]Collecting..."):
             try:
                 report = perceive(observer_filter=observer_filter, save=True)
@@ -309,6 +320,42 @@ class EmberAgent:
             except Exception:
                 pass
     
+    def do_govern(self):
+        if not GOVERNANCE_OK:
+            console.print("[red]❌ Governance missing.[/red]")
+            return
+        console.print("\n[dim]🔒 Ember is checking governance...[/dim]\n")
+        try:
+            summary = gov_summary()
+        except Exception as e:
+            console.print(f"[red]❌ Error: {e}[/red]")
+            return
+
+        gates = summary.get("approval_gates", {}) or {}
+        approved = gates.get("approved", 0)
+        pending = gates.get("pending", 0)
+        rejected = gates.get("rejected", 0)
+
+        table = Table(title="🔒 Governance Gateway (P6)", show_header=True)
+        table.add_column("Metric", style="cyan")
+        table.add_column("Value", justify="right")
+        table.add_row("Active Policies", str(summary.get("active_policies", 0)))
+        table.add_row("Allowed Capabilities", str(summary.get("allowed_capabilities", 0)))
+        table.add_row("Gates Approved", str(approved))
+        table.add_row("Gates Pending", str(pending))
+        table.add_row("Gates Rejected", str(rejected))
+        console.print(table)
+
+        if PROVENANCE_OK:
+            try:
+                log_action(
+                    "governance", "govern",
+                    "ember_governance",
+                    f"policies={summary.get('active_policies', 0)} pending={pending}"
+                )
+            except Exception:
+                pass
+
     def do_analyze(self):
         if not self.last_perception:
             console.print("[yellow]⚠️  Run 'perceive' first.[/yellow]")
@@ -317,15 +364,15 @@ class EmberAgent:
             console.print("[red]❌ Brain offline.[/red]")
             return
         
-        console.print("\n[dim]🧠 Ember က ခွဲခြမ်းစိတ်ဖြာနေသည်...[/dim]\n")
+        console.print("\n[dim]🧠 Ember is analyzing...[/dim]\n")
         summary = perceive_summary(self.last_perception)
-        prompt = f"""Perception Report ကို ခွဲခြမ်းစိတ်ဖြာပါ:
+        prompt = f"""Analyze this Perception Report:
 
 {summary}
 
 Format:
-1. SITUATION: (၁-၂ ကြောင်း)
-2. PRIORITY: (၁ ခု)
+1. SITUATION: (1-2 sentences)
+2. PRIORITY: (1 item)
 3. NEXT ACTION: (bounded)
 4. REASON:"""
         try:
@@ -342,7 +389,7 @@ Format:
         if not PERCEPTION_OK or not PROACTIVE_OK:
             console.print("[red]❌ Modules missing.[/red]")
             return
-        console.print("\n[dim]💡 စဉ်းစားနေသည်...[/dim]\n")
+        console.print("\n[dim]💡 Thinking...[/dim]\n")
         try:
             report = perceive(save=True)
         except Exception as e:
@@ -355,7 +402,7 @@ Format:
         
         if not triggers:
             console.print(Panel(
-                "✨ အကြံပြုချက် မရှိပါ။",
+                "✨ No suggestions available",
                 title="🌸 Ember", border_style="green"
             ))
             return
@@ -477,9 +524,9 @@ Format:
                 results[agent_name] = f"ERROR: {e}"
         
         if self.brain and results:
-            console.print("\n[dim]🧠 Ember က ပေါင်းစပ်နေသည်...[/dim]")
+            console.print("\n[dim]🧠 Ember is synthesizing...[/dim]")
             results_text = "\n".join(f"- {k}: {v}" for k, v in results.items())
-            prompt = f"""Agent ရလဒ်တွေကို ပေါင်းစပ်ပါ:
+            prompt = f"""Synthesize these agent results:
 
 TASK: {task}
 
@@ -487,7 +534,7 @@ RESULTS:
 {results_text}
 
 Format:
-1. SYNTHESIS: (၂-၃ ကြောင်း)
+1. SYNTHESIS: (2-3 sentences)
 2. RECOMMENDATION: (bounded)
 3. CONFIDENCE: (0-100)"""
             try:
@@ -686,7 +733,7 @@ Format:
         
         warnings = check_for_pattern(code)
         if not warnings:
-            console.print(Panel("✅ ပြဿနာ မရှိပါ။",
+            console.print(Panel("✅ No issues found",
                                 title="🌸 Check", border_style="green"))
             return
         
@@ -712,12 +759,12 @@ Format:
     # =========================================================
     
     def do_gate(self):
-        """Release Gate Evaluation ကို Run လုပ်ခြင်း"""
+        """Run Release Gate Evaluation"""
         if not GATE_OK:
             console.print("[red]❌ Release Gate missing.[/red]")
             return
         
-        console.print("\n[dim]🚦 Ember က Release Gate ကို စစ်ဆေးနေသည်...[/dim]\n")
+        console.print("\n[dim]🚦 Ember is checking Release Gate...[/dim]\n")
         
         with console.status("[bold green]Evaluating 6 gates..."):
             try:
@@ -729,14 +776,14 @@ Format:
         console.print(gate_format(result))
     
     def do_gate_history(self):
-        """Release Gate သမိုင်းကြောင်း"""
+        """Release Gate history"""
         if not GATE_OK:
             console.print("[red]❌ Release Gate missing.[/red]")
             return
         
         history = gate_history(10)
         if not history:
-            console.print("[yellow]⚠️  သမိုင်းကြောင်း မရှိပါ။[/yellow]")
+            console.print("[yellow]⚠️  No history found[/yellow]")
             return
         
         table = Table(title="🚦 Release Gate History")
@@ -861,7 +908,7 @@ Format:
         if not self.brain:
             console.print("[red]❌ Brain offline.[/red]")
             return
-        console.print("\n[dim]🧠 စဉ်းစားနေသည်...[/dim]")
+        console.print("\n[dim]🧠 Thinking...[/dim]")
         
         context_parts = []
         if PROVENANCE_OK:
@@ -942,19 +989,24 @@ Format:
             "[bold cyan]🎭 Orchestration (P3):[/bold cyan]\n"
             "  agents / orchestrate <task>\n\n"
             "[bold cyan]🌉 Bridge (P4):[/bold cyan]\n"
-            "  @ <cmd>        - a-Shell ကို ပို့\n"
-            "  T <cmd>        - Termux ကို ပို့\n"
+            "  @ <cmd>        - Send to a-Shell\n"
+            "  T <cmd>        - Send to Termux\n"
             "  bridge         - Bridge Status\n"
-            "  bridge inbox   - Messages ရယူ\n"
+            "  bridge inbox   - Fetch messages\n"
             "  sign <text>    - Ed25519 Sign\n"
             "  graph          - Signed Graph\n"
             "  graph verify   - Integrity Check\n"
             "  mcp            - MCP Interface\n\n"
+            "[bold cyan]🚦 Release Gate (P5):[/bold cyan]\n"
+            "  gate           - Release Gate Evaluation\n"
+            "  gate history   - Past Evaluations\n\n"
+            "[bold cyan]🔒 Governance (P6):[/bold cyan]\n"
+            "  govern         - Governance Gateway Summary\n\n"
             "[bold cyan]📚 Lessons:[/bold cyan]\n"
             "  lessons / check <code>\n\n"
             "[bold cyan]🌸 Identity:[/bold cyan]\n"
             "  ask <q> / whoami / identity / history / help / exit\n\n"
-            "[dim]Terminal Commands တွေလည်း run လို့ရပါတယ်။[/dim]",
+            "[dim]Terminal commands are also supported.[/dim]",
             title="📖 Help", border_style="blue"
         ))
     
@@ -1029,6 +1081,9 @@ Format:
                     self.do_gate(); continue
                 if cmd_lower == "gate history":
                     self.do_gate_history(); continue
+
+                # ===== GOVERNANCE (P6) =====
+                if cmd_lower == "govern": self.do_govern(); continue
 
                 
                 # ===== LESSONS =====

@@ -1,6 +1,6 @@
 """
 Ember Perception - Base Observer
-Observer တွေရဲ့ အခြေခံ Class
+Base class for observers
 """
 
 import hashlib
@@ -11,8 +11,8 @@ from datetime import datetime
 
 class BaseObserver:
     """
-    Observer တွေရဲ့ အခြေခံ Class
-    Subclass တွေက _fetch() ကို override လုပ်ရမယ်
+    Base class for observers
+    Subclasses must override _fetch()
     """
     
     def __init__(self, name: str, category: str = "general"):
@@ -21,7 +21,7 @@ class BaseObserver:
     
     def observe(self) -> dict:
         """
-        Observation တစ်ခု ပြုလုပ်ခြင်း
+        Make an observation
         Returns: Observation dict with full metadata
         """
         start = time.time()
@@ -54,16 +54,16 @@ class BaseObserver:
             "observed_at": datetime.now().isoformat()
         }
     
-    # ===== Subclass က Override လုပ်ရမယ့် Methods =====
+    # ===== Methods Subclasses Must Override =====
     
     def _fetch(self):
-        """ဒေတာ ရယူခြင်း — Subclass က Implement လုပ်ရမယ်"""
+        """Fetch data — must be implemented by subclass"""
         raise NotImplementedError(
             f"{self.__class__.__name__} must implement _fetch()"
         )
     
     def _classify(self, data) -> str:
-        """Status ကို သတ်မှတ်ခြင်း — Default: unknown"""
+        """Determine status — Default: unknown"""
         return "unknown"
     
     def _score_confidence(self, data) -> int:
@@ -73,7 +73,7 @@ class BaseObserver:
     # ===== Common Helper Methods =====
     
     def _classify_error(self, error: Exception) -> str:
-        """Error အမျိုးအစား ခွဲခြားခြင်း"""
+        """Classify error type"""
         err_str = str(error).lower()
         
         if "timeout" in err_str or "timed out" in err_str:
@@ -91,15 +91,15 @@ class BaseObserver:
         return "unknown_error"
     
     def _hash(self, data) -> str:
-        """SHA-256 Hash ဖန်တီးခြင်း (Provenance အတွက်)"""
+        """Generate SHA-256 hash (for provenance)"""
         content = str(data).encode()
         return hashlib.sha256(content).hexdigest()[:16]
 
 
-# ===== Test အတွက် Dummy Observer =====
+# ===== Dummy Observer for Testing =====
 
 class DummyObserver(BaseObserver):
-    """Testing အတွက် Dummy Observer"""
+    """Dummy observer for testing"""
     
     def __init__(self, name="dummy", should_fail=False):
         super().__init__(name, category="test")

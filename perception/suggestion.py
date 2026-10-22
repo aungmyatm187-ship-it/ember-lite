@@ -1,6 +1,6 @@
 """
 Ember Perception - Suggestion Generator
-Trigger တွေကို အခြေခံပြီး အကြံပြုချက် ဖန်တီးခြင်း
+Generate suggestions based on triggers
 """
 
 from datetime import datetime
@@ -8,7 +8,7 @@ from datetime import datetime
 
 class SuggestionGenerator:
     """
-    Trigger တွေကို ကြည့်ပြီး Bounded Suggestions ဖန်တီးခြင်း
+    Generate bounded suggestions from triggers
     """
     
     def __init__(self, brain=None):
@@ -20,52 +20,52 @@ class SuggestionGenerator:
     
     RULES = {
         "error_appeared": {
-            "template": "🚨 {source} မှာ {error_type} Error တက်နေတယ်။",
+            "template": "{source} is reporting a {error_type} error.",
             "actions": {
-                "network_timeout": "Backend Health Check ကို ပြန် run ပါ",
-                "auth_error": "API Key တွေကို ပြန်စစ်ပါ",
-                "not_found": "Endpoint URL ကို စစ်ပါ",
-                "server_error": "Backend Log တွေကို ကြည့်ပါ",
-                "network_error": "Internet Connection ကို စစ်ပါ"
+                "network_timeout": "Re-run the backend health check",
+                "auth_error": "Recheck the API keys",
+                "not_found": "Check the endpoint URL",
+                "server_error": "Review the backend logs",
+                "network_error": "Check the internet connection"
             }
         },
         "status_change": {
-            "template": "{source} ရဲ့ Status က {from_val} ကနေ {to_val} ကို ပြောင်းသွားတယ်။",
+            "template": "{source} status changed from {from_val} to {to_val}.",
             "actions": {
-                "critical": "ဒီအကြောင်းရင်းကို ချက်ချင်း စစ်ဆေးပါ",
-                "recovery": "ပြန်ကောင်းသွားပြီ၊ ဒါပေမယ့် စောင့်ကြည့်နေပါ",
-                "warning": "သတိထားပြီး စောင့်ကြည့်ပါ"
+                "critical": "Investigate this cause immediately",
+                "recovery": "Recovered, but continue monitoring",
+                "warning": "Monitor with caution"
             }
         },
         "confidence_drop": {
-            "template": "{source} ရဲ့ ယုံကြည်စိတ်ချရမှုက {drop}% ကျဆင်းသွားတယ်။",
+            "template": "{source} confidence dropped by {drop}%.",
             "actions": {
-                "high": "Source ကို ပြန်စစ်ဆေးပါ",
-                "medium": "နောက်တစ်ကြိမ် Perceive လုပ်တဲ့အထိ စောင့်ပါ"
+                "high": "Recheck the source",
+                "medium": "Wait until the next perception cycle"
             }
         },
         "correlation_alert": {
-            "template": "🔗 {insight}",
+            "template": "{insight}",
             "actions": {
                 "default": "{action_val}"
             }
         },
         "overall_critical": {
-            "template": "🚨 System တစ်ခုလုံး CRITICAL အခြေအနေမှာ ရှိနေတယ်။",
+            "template": "The entire system is in a CRITICAL state.",
             "actions": {
-                "default": "အားလုံးကို ရပ်ပြီး အကြောင်းရင်းကို စစ်ဆေးပါ"
+                "default": "Stop everything and investigate the cause"
             }
         },
         "overall_warning": {
-            "template": "⚠️ System မှာ Warning ရှိနေတယ်။",
+            "template": "The system has an active warning.",
             "actions": {
-                "default": "သတိထားပြီး စောင့်ကြည့်ပါ"
+                "default": "Monitor with caution"
             }
         }
     }
     
     def generate(self, triggers: list, context: dict = None) -> list:
-        """Triggers တွေကနေ Suggestions ဖန်တီးခြင်း"""
+        """Generate suggestions from triggers"""
         suggestions = []
         
         for trigger in triggers:
@@ -79,7 +79,7 @@ class SuggestionGenerator:
         return suggestions
     
     def _build_suggestion(self, trigger: dict) -> dict:
-        """Trigger တစ်ခုကနေ Suggestion တစ်ခု ဖန်တီးခြင်း"""
+        """Generate a single suggestion from a trigger"""
         t_type = trigger["type"]
         rule = self.RULES.get(t_type)
         
@@ -90,7 +90,7 @@ class SuggestionGenerator:
         context = trigger.get("context", {})
         severity = trigger.get("severity", "medium")
         
-        # Template ကို Fill လုပ်ခြင်း
+        # Fill the template
         try:
             message = rule["template"].format(
                 source=source,
@@ -99,7 +99,7 @@ class SuggestionGenerator:
                 to_val=context.get("to", "?"),
                 drop=context.get("drop", 0),
                 insight=context.get("insight", trigger.get("message", "")),
-                action_val=context.get("action", "စစ်ဆေးပါ")
+                action_val=context.get("action", "Investigate")
             )
         except (KeyError, IndexError) as e:
             message = trigger.get("message", f"Unknown trigger: {e}")
@@ -117,7 +117,7 @@ class SuggestionGenerator:
         }
     
     def _pick_action(self, t_type: str, severity: str, context: dict) -> str:
-        """သင့်တော်တဲ့ Action ကို ရွေးချယ်ခြင်း"""
+        """Choose an appropriate action"""
         rule = self.RULES.get(t_type, {})
         actions = rule.get("actions", {})
         
@@ -139,12 +139,12 @@ class SuggestionGenerator:
                 return actions["medium"]
         
         if t_type == "correlation_alert":
-            return context.get("action", "စစ်ဆေးပါ")
+            return context.get("action", "Investigate")
         
-        return actions.get("default", "စောင့်ကြည့်ပါ")
+        return actions.get("default", "Monitor")
     
     def generate_with_brain(self, triggers: list, context: dict = None) -> str:
-        """LLM ကို သုံးပြီး ပိုပြီး နက်ရှိုင်းတဲ့ အကြံပြုချက် ဖန်တီးခြင်း"""
+        """Use the LLM to generate a deeper suggestion"""
         if not self.brain:
             return "❌ Brain offline. Cannot generate LLM suggestions."
         
@@ -152,7 +152,7 @@ class SuggestionGenerator:
             f"- [{t['severity'].upper()}] {t['message']}" for t in triggers
         )
         
-        prompt = f"""ဒီ Triggers တွေကို ကြည့်ပြီး Ember ရဲ့ ကိုယ်ရည်ကိုယ်သွေးနဲ့ အကြံပြုချက် ပေးပါ။
+        prompt = f"""Look at these triggers and give a suggestion in Ember's voice.
 
 TRIGGERS:
 {trigger_text}
@@ -161,19 +161,19 @@ CONTEXT:
 {context or 'No additional context'}
 
 Format:
-1. SITUATION: လက်ရှိ အခြေအနေ (၁-၂ ကြောင်း)
-2. PRIORITY: အာရုံစိုက်ရမယ့် အရာ (၁ ခု)
-3. NEXT ACTION: နောက်တစ်ဆင့် (bounded action)
-4. REASON: ဘာကြောင့် ဒီ Action လဲ"""
+1. SITUATION: current state (1-2 sentences)
+2. PRIORITY: what to focus on (1 item)
+3. NEXT ACTION: next step (bounded action)
+4. REASON: why this action"""
         
         return self.brain.think(prompt, context)
     
     def format_suggestions(self, suggestions: list) -> str:
-        """Suggestions တွေကို လှပတဲ့ Text အဖြစ် ပြောင်းခြင်း"""
+        """Format suggestions as readable text"""
         if not suggestions:
-            return "✨ အကြံပြုချက် မရှိပါ။ အားလုံး ကောင်းမွန်နေပါတယ်။"
+            return "✨ No suggestions. Everything looks good."
         
-        lines = [f"💡 Ember ရဲ့ အကြံပြုချက် {len(suggestions)} ခု:", ""]
+        lines = [f"💡 Ember has {len(suggestions)} suggestion(s):", ""]
         
         for i, s in enumerate(suggestions, 1):
             icon = {
@@ -198,7 +198,7 @@ if __name__ == "__main__":
             "type": "error_appeared",
             "source": "backend",
             "severity": "critical",
-            "message": "backend မှာ Error တက်နေသည်: network_timeout",
+            "message": "backend is reporting error: network_timeout",
             "context": {"error_type": "network_timeout"}
         },
         {
@@ -212,7 +212,7 @@ if __name__ == "__main__":
             "type": "confidence_drop",
             "source": "evidence",
             "severity": "high",
-            "message": "evidence confidence ကျဆင်း: 95% → 60%",
+            "message": "evidence confidence dropped: 95% → 60%",
             "context": {"drop": 35, "old": 95, "new": 60}
         }
     ]

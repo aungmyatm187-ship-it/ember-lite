@@ -40,7 +40,7 @@ def get_mcp_info() -> dict:
 
 
 def list_tools() -> list:
-    """MCP Tools စာရင်း"""
+    """List of MCP tools"""
     return [
         {"name": "route_command", "description": "Route command between terminals"},
         {"name": "process_inbox", "description": "Get pending messages for terminal"},

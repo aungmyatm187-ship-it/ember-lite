@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ember-lite"
+version = "0.6.0"
+description = "Ember-Lite - local-first governance layer for terminal operations (Signals to Evidence)"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = [
+    "cryptography>=42.0.0",
+    "requests>=2.31.0",
+    "rich>=13.0.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0.0", "pytest-cov>=5.0.0"]
+
+[project.scripts]
+ember-lite = "ember_agent:main"
+
+[tool.setuptools]
+# The engine is the perception package plus its top-level modules. Declared
+# explicitly so a build never sweeps in scratch files.
+packages = ["perception"]
+py-modules = [
+    "ember_agent",
+    "ember_brain",
+    "ember_brain_light",
+    "ember_identity",
+    "provenance",
+    "safety",
+]

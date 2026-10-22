@@ -1,10 +1,10 @@
 """
 Ember Multi-Agent Orchestrator
-အထူးပြု Agent များကို စီမံခြင်း
+Manage specialized agents
 """
 
 class AgentRegistry:
-    """Agent များကို Register လုပ်ခြင်း"""
+    """Register agents"""
     
     def __init__(self):
         self.agents = {}
@@ -25,18 +25,18 @@ class AgentRegistry:
         return self.agents[name]["func"](*args, **kwargs)
 
 
-# ===== ဥပမာ Agent များ =====
+# ===== Example agents =====
 
 def researcher_agent(query):
-    """Web Research လုပ်တဲ့ Agent"""
+    """Agent that performs web research"""
     return f"[Researcher] Searching for: {query}"
 
 def coder_agent(task):
-    """Code ရေးတဲ့ Agent"""
+    """Agent that writes code"""
     return f"[Coder] Writing code for: {task}"
 
 def reviewer_agent(code):
-    """Code Review လုပ်တဲ့ Agent"""
+    """Agent that reviews code"""
     return f"[Reviewer] Reviewing: {code[:50]}"
 
 

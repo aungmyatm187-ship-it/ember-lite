@@ -1,12 +1,12 @@
 import re
 
 DANGEROUS_PATTERNS = [
-    (r'\brm\s+-rf\s+/', 'CRITICAL', 'Filesystem ဖျက်ခြင်း'),
-    (r'\bDROP\s+TABLE\b', 'CRITICAL', 'Database Table ဖျက်ခြင်း'),
-    (r'\bcurl\s+.*\|\s*(bash|sh)\b', 'CRITICAL', 'Remote Script Run ခြင်း'),
-    (r'\bgit\s+push\s+--force\b', 'HIGH', 'Git History ဖျက်ခြင်း'),
-    (r'\bgit\s+reset\s+--hard\b', 'HIGH', 'Git Changes ဖျက်ခြင်း'),
-    (r'\bsudo\b', 'HIGH', 'Root အသုံးပြုခြင်း'),
+    (r'\brm\s+-rf\s+/', 'CRITICAL', 'Filesystem deletion'),
+    (r'\bDROP\s+TABLE\b', 'CRITICAL', 'Database table deletion'),
+    (r'\bcurl\s+.*\|\s*(bash|sh)\b', 'CRITICAL', 'Remote script execution'),
+    (r'\bgit\s+push\s+--force\b', 'HIGH', 'Git history deletion'),
+    (r'\bgit\s+reset\s+--hard\b', 'HIGH', 'Git changes discard'),
+    (r'\bsudo\b', 'HIGH', 'Root/sudo usage'),
 ]
 
 SAFE_PATTERNS = [

@@ -147,7 +147,7 @@ def add_observation(observation: dict, terminal: str = "cloud") -> dict:
             signed_result = sign(block_payload, terminal=terminal)
             signature = signed_result.get("signature")
             public_key = signed_result.get("public_key")
-            key_id = signed_result.get("lib", "unknown")
+            key_id = signed_result.get("key_id")
             signed = bool(signature)
         except Exception as exc:
             sign_error = f"{type(exc).__name__}: {exc}"
@@ -294,36 +294,27 @@ def get_chain_summary() -> dict:
     try:
         row = conn.execute("""
             SELECT COUNT(*), MAX(block_index),
-                   SUM(signed), SUM(verified)
+                   SUM(signed), SUM(verified), SUM(anchored)
             FROM chain
         """).fetchone()
-    finally:
-        conn.close()
-
-    count = row[0] or 0
-    latest = row[1] or 0
-    signed = row[2] or 0
-    verified = row[3] or 0
-
-    tip = "0" * 16
-    if count > 0:
-        conn = sqlite3.connect(DB_PATH)
-        try:
+        tip = "0" * 16
+        if row[0]:
             r = conn.execute("""
                 SELECT block_hash FROM chain
                 ORDER BY block_index DESC LIMIT 1
             """).fetchone()
             if r:
                 tip = r[0][:16]
-        finally:
-            conn.close()
+    finally:
+        conn.close()
 
+    count = row[0] or 0
     return {
         "blocks": count,
-        "latest_index": latest,
-        "signed": signed,
-        "verified": verified,
-        "anchored": 0,
+        "latest_index": row[1] or 0,
+        "signed": row[2] or 0,
+        "verified": row[3] or 0,
+        "anchored": row[4] or 0,
         "tip_hash": tip,
         "schema_version": SCHEMA_VERSION,
     }

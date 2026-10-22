@@ -10,6 +10,7 @@ Premium: Cryptographic Provenance
 import os
 import json
 import base64
+import hashlib
 from cryptography.hazmat.primitives.asymmetric import ed25519
 from cryptography.hazmat.primitives import serialization
 
@@ -29,7 +30,7 @@ def _key_paths(terminal: str):
 
 
 def generate_keypair(terminal: str) -> dict:
-    """Terminal အတွက် Ed25519 Keypair ဖန်တီးခြင်း"""
+    """Create an Ed25519 keypair for a terminal"""
     _ensure_key_dir()
     priv_path, pub_path = _key_paths(terminal)
     
@@ -72,7 +73,7 @@ def _load_public(terminal: str):
 
 
 def sign(payload, terminal: str = "T") -> dict:
-    """Payload ကို Sign လုပ်ခြင်း"""
+    """Sign a payload"""
     if isinstance(payload, (dict, list)):
         data = json.dumps(payload, sort_keys=True).encode()
     else:
@@ -91,12 +92,16 @@ def sign(payload, terminal: str = "T") -> dict:
         "signature": base64.b64encode(signature).decode(),
         "public_key": base64.b64encode(pub_bytes).decode(),
         "algorithm": "Ed25519",
-        "payload_hash": data.hex()[:16]
+        # A stable fingerprint of the signing key, so a receipt identifies WHICH
+        # key signed it (for rotation/revocation). Not a hash of the payload.
+        "key_id": base64.b64encode(hashlib.sha256(pub_bytes).digest()).decode()[:16],
+        # Full sha256 of the exact signed bytes, so a verifier can re-derive it.
+        "payload_hash": hashlib.sha256(data).hexdigest(),
     }
 
 
 def verify(payload, signature_b64: str, public_key_b64: str) -> bool:
-    """Signature ကို Verify လုပ်ခြင်း"""
+    """Verify a signature"""
     try:
         if isinstance(payload, (dict, list)):
             data = json.dumps(payload, sort_keys=True).encode()
